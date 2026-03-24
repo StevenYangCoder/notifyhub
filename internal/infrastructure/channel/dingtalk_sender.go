@@ -5,6 +5,7 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -41,20 +42,33 @@ func NewDingTalkSender(client httpx.JSONClient, logger *slog.Logger) *DingTalkSe
 func (s *DingTalkSender) Send(ctx context.Context, message notify.Message, channel notify.ChannelConfig) error {
 	finalURL, err := s.buildRequestURL(channel)
 	if err != nil {
+		s.logger.Error("钉钉请求URL构建失败", "渠道", channel.Name, "错误", err)
 		return err
 	}
 
 	payload := s.buildPayload(message, channel)
-	s.logger.Debug("钉钉发送器开始请求", "渠道", channel.Name, "url", finalURL)
+	s.logger.Info("钉钉发送请求", "渠道", channel.Name, "url", finalURL)
 	resp, body, err := s.client.PostJSON(ctx, finalURL, nil, payload)
 	if err != nil {
+		s.logger.Error("钉钉请求失败", "渠道", channel.Name, "url", finalURL, "错误", err)
 		return fmt.Errorf("钉钉请求失败: %w", err)
 	}
 	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
+		s.logger.Error(
+			"钉钉返回非成功状态码",
+			"渠道", channel.Name,
+			"url", finalURL,
+			"状态码", resp.StatusCode,
+			"响应", string(body),
+		)
 		return fmt.Errorf("钉钉返回非成功状态码: %d, 响应: %s", resp.StatusCode, string(body))
 	}
+	if err := validateDingTalkResponse(body); err != nil {
+		s.logger.Error("钉钉业务返回失败", "渠道", channel.Name, "url", finalURL, "响应", string(body), "错误", err)
+		return err
+	}
 
-	s.logger.Info("钉钉发送成功", "渠道", channel.Name, "状态码", resp.StatusCode)
+	s.logger.Info("钉钉发送成功", "渠道", channel.Name, "url", finalURL, "状态码", resp.StatusCode)
 	return nil
 }
 
@@ -131,4 +145,46 @@ func signDingTalk(timestamp string, secret string) (string, error) {
 	}
 	rawSign := base64.StdEncoding.EncodeToString(mac.Sum(nil))
 	return url.QueryEscape(rawSign), nil
+}
+
+func validateDingTalkResponse(body []byte) error {
+	var resp struct {
+		ErrCode *int64  `json:"errcode"`
+		ErrMsg  string  `json:"errmsg"`
+		Code    *int64  `json:"code"`
+		Msg     string  `json:"msg"`
+		Success *bool   `json:"success"`
+		OK      *bool   `json:"ok"`
+		Message *string `json:"message"`
+	}
+	if err := json.Unmarshal(body, &resp); err != nil {
+		return nil
+	}
+
+	if resp.ErrCode != nil && *resp.ErrCode != 0 {
+		return fmt.Errorf("钉钉业务失败: errcode=%d errmsg=%s", *resp.ErrCode, strings.TrimSpace(resp.ErrMsg))
+	}
+	if resp.Code != nil && *resp.Code != 0 && *resp.Code != 200 {
+		msg := strings.TrimSpace(resp.Msg)
+		if msg == "" && resp.Message != nil {
+			msg = strings.TrimSpace(*resp.Message)
+		}
+		return fmt.Errorf("钉钉业务失败: code=%d msg=%s", *resp.Code, msg)
+	}
+	if resp.Success != nil && !*resp.Success {
+		msg := strings.TrimSpace(resp.Msg)
+		if msg == "" && resp.Message != nil {
+			msg = strings.TrimSpace(*resp.Message)
+		}
+		return fmt.Errorf("钉钉业务失败: success=false msg=%s", msg)
+	}
+	if resp.OK != nil && !*resp.OK {
+		msg := strings.TrimSpace(resp.Msg)
+		if msg == "" && resp.Message != nil {
+			msg = strings.TrimSpace(*resp.Message)
+		}
+		return fmt.Errorf("钉钉业务失败: ok=false msg=%s", msg)
+	}
+
+	return nil
 }

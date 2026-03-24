@@ -38,7 +38,8 @@ go run ./cmd/notifyhub \
 
 # 三、编译跨平台二进制
 
-```sh
+## Bash
+```bash
 # Linux (amd64)
 GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags "-X main.BuildTime=$(date '+%Y-%m-%dT%H:%M:%S%z')" -o bin/notifyhub-linux-amd64 ./cmd/notifyhub
 
@@ -50,6 +51,21 @@ GOOS=darwin GOARCH=arm64 CGO_ENABLED=0 go build -ldflags "-X main.BuildTime=$(da
 
 # Windows (amd64)
 GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -ldflags "-X main.BuildTime=$(date '+%Y-%m-%dT%H:%M:%S%z')" -o bin/notifyhub-windows-amd64.exe ./cmd/notifyhub
+```
+
+## Windows 10 PowerShell
+```powershell
+# Linux (amd64)
+$env:GOOS="linux"; $env:GOARCH="amd64"; $env:CGO_ENABLED="0"; go build -ldflags "-X main.BuildTime=$(Get-Date -Format 'yyyy-MM-ddTHH:mm:ssK')" -o bin/notifyhub-linux-amd64 ./cmd/notifyhub
+
+# macOS Intel (amd64)
+$env:GOOS="darwin"; $env:GOARCH="amd64"; $env:CGO_ENABLED="0"; go build -ldflags "-X main.BuildTime=$(Get-Date -Format 'yyyy-MM-ddTHH:mm:ssK')" -o bin/notifyhub-darwin-amd64 ./cmd/notifyhub
+
+# macOS Apple Silicon (arm64)
+$env:GOOS="darwin"; $env:GOARCH="arm64"; $env:CGO_ENABLED="0"; go build -ldflags "-X main.BuildTime=$(Get-Date -Format 'yyyy-MM-ddTHH:mm:ssK')" -o bin/notifyhub-darwin-arm64 ./cmd/notifyhub
+
+# Windows (amd64)
+$env:GOOS="windows"; $env:GOARCH="amd64"; $env:CGO_ENABLED="0"; go build -ldflags "-X main.BuildTime=$(Get-Date -Format 'yyyy-MM-ddTHH:mm:ssK')" -o bin/notifyhub-windows-amd64.exe ./cmd/notifyhub
 ```
 
 查看版本与构建时间：
