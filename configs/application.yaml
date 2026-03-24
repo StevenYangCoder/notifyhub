@@ -1,0 +1,31 @@
+application:
+  notify:
+    templates:
+      - name: msg01
+        title: "${env}环境数据库备份结果"
+        content: "任务：${task}\n状态：${status}\n耗时：${duration}"
+    channels:
+      - name: chuckfang-main
+        channel_type: chuckfang
+        # ChuckFang 渠道会发起 GET 请求，并将 ${title}、${content} 替换进 URL
+        url: https://api.chuckfang.com/xxxx设备/${title}/${content}
+      - name: dingtalk-robot
+        channel_type: dingtalk
+        url: https://oapi.dingtalk.com/robot/send
+        access_token: xxxxxxxx
+        sign: xxxxxxxx
+        keyword: 关键字xxx
+        at:
+          isAtAll: false
+          atMobiles:
+            - 18188888888
+      - name: smtp-main
+        channel_type: smtp
+        smtp_host: smtp.163.com
+        smtp_port: 465
+        smtp_tls_mode: ssl
+        smtp_username: email.test@163.com
+        smtp_password: xxxxxxxx
+        smtp_from: email.test@163.com
+        smtp_to:
+          - email.test@qq.com
