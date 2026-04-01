@@ -54,6 +54,7 @@ GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -ldflags "-X main.BuildTime=$(d
 ```
 
 ## Windows 10 PowerShell
+
 ```powershell
 # Linux (amd64)
 $env:GOOS="linux"; $env:GOARCH="amd64"; $env:CGO_ENABLED="0"; go build -ldflags "-X main.BuildTime=$(Get-Date -Format 'yyyy-MM-ddTHH:mm:ssK')" -o bin/notifyhub-linux-amd64 ./cmd/notifyhub
@@ -73,3 +74,14 @@ $env:GOOS="windows"; $env:GOARCH="amd64"; $env:CGO_ENABLED="0"; go build -ldflag
 ```sh
 ./bin/notifyhub-darwin-amd64 -version
 ```
+
+
+
+
+
+# 四、使用
+
+```sh
+./notifyhub-darwin-amd64 -config configs/application.yaml -channel dingtalk-robot -template msg01 -var env=prod -var task=mysql-backup -var status=成功 -var duration=21s
+```
+
